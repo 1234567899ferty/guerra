@@ -391,6 +391,7 @@
         document.getElementById("btn-iniciar-combate").disabled = true;
         document.getElementById("input-rival").value = "";
         
+        // REINICIO DE VIDAS AL 100% CADA VEZ QUE SE ABRE EL DESPLIEGUE
         document.getElementById('vida-jugador').style.width = '100%';
         document.getElementById('vida-enemigo').style.width = '100%';
         document.getElementById("log-batalla").innerHTML = "Pega el código del vehículo de un amigo o introduce tu código secreto.";
@@ -406,11 +407,10 @@
         
         btn.disabled = true;
         radar.classList.add('activa');
-        log.innerHTML = "⚔️ El Tanque Nivel 1000 desata su poder absoluto contra el rival...";
+        log.innerHTML = "⚔️ ¡Iniciando intercambio táctico de fuego cruzado...";
 
         setTimeout(() => {
             document.getElementById('box-jugador').classList.add('animando-ataque-jugador');
-            document.getElementById('vida-enemigo').style.width = '0%'; // Destrucción instantánea
             caja.classList.add('pantalla-impacto');
             setTimeout(() => { document.getElementById('box-jugador').classList.remove('animando-ataque-jugador'); caja.classList.remove('pantalla-impacto'); }, 500);
         }, 1000);
@@ -426,10 +426,21 @@
                 estadoJuego.monedas += recompensa;
                 log.innerHTML = `<span style="color: #ffaa00; font-size: 20px; font-weight: bold;">⚡ ¡HABILIDAD DIVINA: MATÓ A TODOS AL INSTANTE! ⚡</span><br>El rival fue borrado del mapa sin dejar rastro. ¡Victoria absoluta garantizada! Botín: 🪙 ${recompensa.toLocaleString()}`;
             } else {
-                // Combate normal por si usas otro tanque
-                document.getElementById('vida-enemigo').style.width = '0%';
-                estadoJuego.monedas += 10000;
-                log.innerHTML = `<span style="color: #28a745; font-size: 18px; font-weight: bold;">¡Victoria en combate!</span>`;
+                // Combate normal basado en poder de estrellas
+                let n1 = (v.val1.match(/★/g) || []).length;
+                let n2 = (v.val2.match(/★/g) || []).length;
+                let poderJugador = n1 + n2;
+                let poderEnemigo = rivalActual.estrellasTotales;
+
+                if (poderJugador >= poderEnemigo) {
+                    document.getElementById('vida-enemigo').style.width = '0%';
+                    let recompensa = 15000;
+                    estadoJuego.monedas += recompensa;
+                    log.innerHTML = `<span style="color: #28a745; font-size: 18px; font-weight: bold;">🎉 ¡Victoria en combate táctico!</span><br>Tu blindaje superó al oponente. Botín obtenido: 🪙 ${recompensa.toLocaleString()}`;
+                } else {
+                    document.getElementById('vida-jugador').style.width = '0%';
+                    log.innerHTML = `<span style="color: #ff4d4d; font-size: 18px; font-weight: bold;">❌ ¡Derrota!</span><br>El oponente tenía mayor potencia de fuego. Mejora tus estadísticas en el Taller.`;
+                }
             }
             guardar();
             actualizarInterfaz();
@@ -526,16 +537,11 @@
                 </div>
                 <div class="panel-oscuro">
                     <h3 style="color: #ffaa00; margin-bottom: 20px;">⚡ Habilidad de Destrucción Masiva Activa</h3>
-                    <p style="color:#caf0f8; font-size:15px;">Este tanque elimina automáticamente a cualquier enemigo en cuanto presionas el botón de combatir. Su victoria es ineludible.</p>
+                    <p style="color:#caf0f8; font-size:15px;">Este tanque elimina automáticamente a cualquier enemigo en cuanto presionas el botón de combatir. Su victoria es inquebrantable.</p>
                 </div>
             `;
             return;
         }
-
-        let nivel1 = (vehiculo.val1.match(/★/g) || []).length;
-        let nivel2 = (vehiculo.val2.match(/★/g) || []).length;
-        let costo1 = nivel1 * 5000;
-        let costo2 = nivel2 * 5000;
 
         contenedor.innerHTML = `
             <div class="tarjeta seleccionado" style="transform: scale(1.08);">
@@ -546,43 +552,53 @@
                     <p><span>${vehiculo.stat2Nombre}</span> <span class="stars">${vehiculo.val2}</span></p>
                 </div>
             </div>
-            
             <div class="panel-oscuro">
-                <h3 style="color: #00f0ff; margin-bottom: 20px;">Estación de Mejoras Cuánticas</h3>
-                <p style="color:#aaa; font-size:14px; margin-bottom:20px;">Mejora los atributos al máximo nivel supremo.</p>
+                <h3 style="color: #00f0ff; margin-bottom: 10px;">Mejoras de Rendimiento</h3>
+                <p style="color:#aaa; font-size:14px; margin-bottom:20px;">Potencia los subsistemas de tu blindado para asegurar victorias en el frente.</p>
                 
                 <div class="fila-mejora">
-                    <span style="font-size: 16px;">🛡️ Reforzar ${vehiculo.stat1Nombre}</span>
-                    <button class="btn-accion btn-azul" style="width: 150px;" onclick="mejorar('val1')" ${nivel1 >= 5 ? 'disabled' : ''}>${nivel1 >= 5 ? 'MAX' : '🪙 ' + costo1.toLocaleString()}</button>
+                    <div>
+                        <strong style="color:#fff;">${vehiculo.stat1Nombre}</strong>
+                        <p style="font-size:12px; color:#aaa;">Incrementa la densidad de blindaje.</p>
+                    </div>
+                    <button class="btn-accion btn-verde" style="width: auto; padding: 8px 16px; font-size:14px;" onclick="mejorarStat(1)">Mejorar (🪙 5,000)</button>
                 </div>
-                <div class="fila-mejora">
-                    <span style="font-size: 16px;">💥 Aumentar ${vehiculo.stat2Nombre}</span>
-                    <button class="btn-accion btn-rojo" style="width: 150px;" onclick="mejorar('val2')" ${nivel2 >= 5 ? 'disabled' : ''}>${nivel2 >= 5 ? 'MAX' : '🪙 ' + costo2.toLocaleString()}</button>
+
+                <div class="fila-mejora" style="border:none;">
+                    <div>
+                        <strong style="color:#fff;">${vehiculo.stat2Nombre}</strong>
+                        <p style="font-size:12px; color:#aaa;">Calibra sistemas ofensivos.</p>
+                    </div>
+                    <button class="btn-accion btn-verde" style="width: auto; padding: 8px 16px; font-size:14px;" onclick="mejorarStat(2)">Mejorar (🪙 5,000)</button>
                 </div>
             </div>
         `;
     }
 
-    function mejorar(stat) {
-        let v = estadoJuego.inventario.find(x => x.nombre === estadoJuego.vehiculoActivo);
-        let nivel = (v[stat].match(/★/g) || []).length;
-        if (nivel >= 5) return; 
-
-        let costo = nivel * 5000;
+    function mejorarStat(num) {
+        let vehiculo = estadoJuego.inventario.find(v => v.nombre === estadoJuego.vehiculoActivo);
+        let costo = 5000;
+        
         if (estadoJuego.monedas >= costo) {
             estadoJuego.monedas -= costo;
-            nivel++;
-            v[stat] = '★'.repeat(nivel) + '☆'.repeat(5 - nivel);
+            if (num === 1) {
+                let count = (vehiculo.val1.match(/★/g) || []).length;
+                if (count < 5) count++;
+                vehiculo.val1 = '★'.repeat(count) + '☆'.repeat(5 - count);
+            } else {
+                let count = (vehiculo.val2.match(/★/g) || []).length;
+                if (count < 5) count++;
+                vehiculo.val2 = '★'.repeat(count) + '☆'.repeat(5 - count);
+            }
             guardar();
             actualizarInterfaz();
             renderizarTaller();
         } else {
-            alert("Fondos insuficientes para la mejora.");
+            alert("No tienes suficientes monedas para realizar esta mejora.");
         }
     }
 
-    cargar();
+    window.onload = cargar;
 </script>
-
 </body>
 </html>
